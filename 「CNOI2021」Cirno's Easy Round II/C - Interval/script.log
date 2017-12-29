@@ -1,0 +1,10 @@
+@all = @score1 + @score2 + @score3 + @score4;
+if (@all < 100); then
+    @final_status = UNAC;
+else
+    @final_status = AC;
+    @all = @all + @score5;
+fi
+@total_score = @all;
+@final_time = 0;
+@final_memory = 0;
