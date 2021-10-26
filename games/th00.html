@@ -1,0 +1,242 @@
+---
+layout: page
+---
+
+<canvas id="canvas" width="560" height="800" style="background: Black"></canvas>
+
+<div>
+<span id = "graze">
+	| graze : 0 |
+</span>
+<span id = "fps">
+	| fps : 0 |
+</span>
+<button id = "mode1" onclick="set_mode1()" style="color:#3388cc">自机狙+随机弹</button>
+<button id = "mode2" onclick="set_mode2()" style="color:black">随机弹</button>
+<button id = "mode3" onclick="set_mode3()" style="color:black">泛狙</button>
+<button id = "mode4" onclick="set_mode4()" style="color:black">雨弹幕</button>
+</div>
+
+<script>
+	var scr = document.getElementById("canvas").getContext("2d");
+	var grz = document.getElementById("graze");
+	var fps = document.getElementById("fps");
+	var scr_w = 560, scr_h = 800, px = scr_w / 2, py = scr_h * 9 / 10, pw = 4, ph = 4, cnt;
+	var bullet=[1,1],buldir=[1,1],bulletcnt=1;
+	var is_shift = false;
+	var mode = 5;
+	var graze = 0;
+	var starttime = 0;
+	var timeall = 0;
+	var frameall = 0;
+	
+	function draw(x,y,w,h,c)
+	{  
+		scr.beginPath();
+		scr.fillStyle=c;
+		scr.arc( x, y, w, 0, Math.PI*2 );
+		scr.closePath();
+		scr.fill();
+		//scr.fillRect(~~(x-w/2),~~(y-h/2),w,h);
+	} 
+	
+	var key_pressed={};
+
+	document.addEventListener("keyup",function(e)
+	{
+		key_pressed[e.keyCode]=false;
+		if( !e.shiftKey ) is_shift = false;
+		else is_shift = true;
+	});
+
+	document.addEventListener("keydown",function(e)
+	{
+		key_pressed[e.keyCode]=true;
+		if( e.shiftKey ) is_shift = true;
+		else is_shift = false;
+	});
+
+	function sqr(x){return x*x;}
+	
+	function dist(x1,y1,x2,y2){return sqr(Math.abs(x1-x2))+sqr(Math.abs(y1-y2));}
+
+	function mian()
+	{	
+		var s_time = Date.now();
+		cnt=1;
+		var limits = 80;
+		if( mode == 3 ) limits = 100;
+		if( mode == 2 || mode == 4 ) limits = 200, cnt = 4;
+		if( mode == 5 ) cnt = 10, limits = 100000;
+		while( bulletcnt < limits && cnt )
+		{
+			if( mode <= 4 ) {
+				var x = Math.random() * 600, y = Math.random() * 10;
+				bullet.push(x);
+				bullet.push(y);
+			}
+			switch(mode) {
+			
+			case 1:
+			if( Math.random() > 0.6 ) {
+				buldir.push( (px - x) * 0.012 );
+				buldir.push( (py - y) * 0.012 );
+			} else {
+				buldir.push( (Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 2.8 );
+				buldir.push( Math.random() * 5.6 );
+			}
+			break;
+			
+			case 2:
+				buldir.push( (Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 2.8 );
+				buldir.push( Math.random() * 5.6 );
+			break;
+			
+			case 3:
+				var qx = px + ( Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 55.5;
+				var qy = py + ( Math.random() > 0.5 ? 1 : -1 ) * Math.random() * 55.5;
+				buldir.push( (qx - x) * 0.009 );
+				buldir.push( (qy - y) * 0.009 );
+			break;
+			
+			case 4:
+				buldir.push(0);
+				buldir.push(Math.random() * 7.2);
+			break;
+			
+			case 5:
+				var pi = 3.1415926;
+				bullet.push(260);
+				bullet.push(300);
+				buldir.push( 10 * Math.cos( pi / 125 * frameall * frameall / 4 + pi / 5 * cnt ) );
+				buldir.push( 10 * Math.sin( pi / 125 * frameall * frameall / 4 + pi / 5 * cnt ) );
+			break;
+			}
+			cnt --;
+			bulletcnt ++;
+		}
+
+		for(var i=0;i<bullet.length;i+=2)
+		{
+			if(dist(bullet[i],bullet[i+1],px,py)<16)
+				return ;
+			if(dist(bullet[i],bullet[i+1],px,py)<144)
+				graze ++;
+				
+			draw( bullet[i], bullet[i+1], 4.3, 4.3, "Black" );
+
+			bullet[i]+=buldir[i];
+			bullet[i+1]+=buldir[i+1];
+			
+			if(~~(bullet[i])==~~(px) && ~~(bullet[i+1])==~~(py))
+				return ;
+
+			if( bullet[i]<0 || scr_w < bullet[i] || bullet[i+1]<0 || scr_h < bullet[i+1] )
+			{
+				bullet.splice(i,2);
+				buldir.splice(i,2);
+				bulletcnt--;
+			}
+			else
+				draw( bullet[i], bullet[i+1], 4, 4, "Cyan" );
+		}
+		
+		draw(px,py,pw,ph,"Black");
+
+		tmp=px;
+		if(key_pressed[37] || key_pressed[74])
+			if( !is_shift ) tmp-=4;
+			else tmp --;
+		
+		if(key_pressed[39] || key_pressed[76])
+			if( !is_shift ) tmp+=4;
+			else tmp ++;
+		px=(tmp<scr_w-pw && tmp>pw)?tmp:px;
+
+		tmp=py;
+		if(key_pressed[38] || key_pressed[73])
+			if( !is_shift ) tmp-=4;
+			else tmp --;
+		if(key_pressed[40] || key_pressed[75])
+			if( !is_shift ) tmp+=4;
+			else tmp ++;
+		py=(tmp<scr_h-ph && tmp>ph)?tmp:py;
+
+		draw(px,py,pw,ph,"Red");
+		
+		var t_time = Date.now();
+		timeall = t_time;
+		frameall ++;
+		
+		grz.innerHTML = "| graze : " + graze + " |";
+		fps.innerHTML = "| fps : " + ( 1000 * frameall / ( timeall - starttime ) ).toFixed(2) + " | " + (t_time - s_time) + " |";
+		
+		if( frameall == 200 ) 
+		  { frameall = 0; starttime = Date.now(); }
+		
+		setTimeout(arguments.callee, Math.max( 10 - (t_time - s_time), 0 ) );  
+	};  
+
+	function cls()
+	{
+		scr.clearRect(0,0,scr_w,scr_h);
+		for(var i=0;i<4;i++)
+		{
+			key_pressed[i+37]=false;
+			key_pressed[i+73]=false;
+		}
+	}
+
+	document.onkeydown=function(e)
+	{
+		if(e.keyCode==82)
+		{
+			while(bulletcnt)
+			{
+				bullet.pop();
+				bullet.pop();
+				buldir.pop();
+				buldir.pop();
+				bulletcnt--;
+			}
+			px = scr_w / 2;
+			py = scr_h * 9 / 10;
+			starttime = Date.now();
+			graze = 0;
+			cls();
+			mian();
+		}
+	}
+	
+	function set_mode1() {
+		mode = 1;
+		document.getElementById("mode4").style.color="#000";
+		document.getElementById("mode3").style.color="#000";
+		document.getElementById("mode2").style.color="#000";
+		document.getElementById("mode1").style.color="#3388cc";
+	}
+	
+	function set_mode2() {
+		mode = 2;
+		document.getElementById("mode4").style.color="#000";
+		document.getElementById("mode2").style.color="#3388cc";
+		document.getElementById("mode1").style.color="#000";
+		document.getElementById("mode3").style.color="#000";
+	}
+	
+	function set_mode3() {
+		mode = 3;
+		document.getElementById("mode4").style.color="#000";
+		document.getElementById("mode3").style.color="#3388cc";
+		document.getElementById("mode1").style.color="#000";
+		document.getElementById("mode2").style.color="#000";
+	}
+	
+	function set_mode4() {
+		mode = 4;
+		document.getElementById("mode3").style.color="#000";
+		document.getElementById("mode4").style.color="#3388cc";
+		document.getElementById("mode1").style.color="#000";
+		document.getElementById("mode2").style.color="#000";
+	}
+</script>
